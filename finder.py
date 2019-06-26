@@ -2,25 +2,34 @@
 # -*- coding: utf-8 -*-
 
 import requests
+import urllib.parse
 from bs4 import BeautifulSoup as bs
 from pprint import pprint as pp
-import sys
 import pickle
 import argparse
 
 
-def search(technology, location, max_page=10):
-    # TODO: dar la posibilidad de que las tecnologias sean varias
+def encoded_skills(techlist):
+    query = ''
+    for tech in techlist:
+        query += urllib.parse.quote(tech + ' ')
+    return query
+
+
+def search(skills, location, max_page=10):
     # TODO: scrapear la descripcion del puesto para analysis
     # TODO: mejorar los logs con un loader para que no acumule basura
 
-    print('Alright, we are looking for ' + technology + ' in ' + location)
+    print('Alright, we are looking for ' + ' '.join(skills) + ' in ' + location)
     url = 'https://www.indeed.com/jobs'
     url += '?q={}&l={}&radius=25&start={}'
     roles = []
     PAGE_SIZE = 10
+
     for page in range(1, max_page):
-        r = requests.get(url.format(technology, location, page * PAGE_SIZE))
+        url = url.format(encoded_skills(skills), location, page * PAGE_SIZE)
+        print(url)
+        r = requests.get(url)
         soup = bs(r.text, 'html.parser')
         # tabla = soup.find(id='resultsCol')
 
@@ -94,7 +103,7 @@ if __name__ == '__main__':
     PICKLE_FILE = 'data.pickle'
     parser = argparse.ArgumentParser(description='Source - Indeed Scraper')
     parser.add_argument('--location', dest="location", required=True)
-    parser.add_argument('--skills', dest="skills")
+    parser.add_argument('--skills', dest="skills", nargs='*')
     parser.add_argument('--role', dest="role")
 
     try:
@@ -104,7 +113,7 @@ if __name__ == '__main__':
         #   indeed_companies.py 'San Francisco, CA' --role 'Devops Engineer'
         args = parser.parse_args()
         db = load_db(PICKLE_FILE)
-
+        print(args)
         # Modo Scrapper
         if args.skills:
             roles = search(args.skills, args.location)
